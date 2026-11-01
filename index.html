@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini Racing</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:15px;background:#eaf0f7;font-family:Arial;text-align:center;color:#172033}
+.app{max-width:420px;margin:auto;background:white;padding:15px;border-radius:18px}
+.stats{display:flex;justify-content:space-around;margin:15px 0}
+canvas{width:100%;height:auto;background:#39744b;border-radius:10px}
+button{padding:14px;border:0;border-radius:10px;font-weight:bold;font-size:16px;cursor:pointer}
+.primary{background:#16a34a;color:white;width:100%;margin:12px 0}
+.controls{display:flex;gap:10px}
+.controls button{flex:1;background:#e8edf5}
+#overlay{background:#0009;color:white;position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px;border-radius:10px}
+.stage{position:relative}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>🏎️ MINI RACING</h1>
+<div class="stats">
+<div>WYNIK<br><b id="score">0</b></div>
+<div>REKORD<br><b id="best">0</b></div>
+<div>PRĘDKOŚĆ<br><b id="speed">0</b></div>
+</div>
+<div class="stage">
+<canvas id="game" width="360" height="540"></canvas>
+<div id="overlay">
+<h2>🏎️ MINI RACING</h2>
+<p>Omijaj samochody i zdobywaj punkty!</p>
+<button class="primary" id="start">ROZPOCZNIJ GRĘ</button>
+</div>
+</div>
+<div class="controls">
+<button id="left">⬅️ LEWO</button>
+<button id="right">PRAWO ➡️</button>
+</div>
+<p>Sterowanie: przyciski lub strzałki.</p>
+</div>
+<script>
+const c=document.getElementById('game'),x=c.getContext('2d');
+const $=id=>document.getElementById(id);
+const lanes=[115,180,245];
+let running=false,frame=0,score=0,speed=3,lane=1,cars=[],last=0,best=0,raf=0;
+function rect(a,b,w,h,r,col){
+x.fillStyle=col;x.beginPath();x.roundRect(a,b,w,h,r);x.fill();
+}
+function car(a,b,col){
+rect(a-17,b-27,34,54,8,col);
+rect(a-12,b-19,24,17,4,'#b9e2ed');
+rect(a-12,b+5,24,12,4,'#293947');
+rect(a-20,b-17,5,13,2,'#111');
+rect(a+15,b-17,5,13,2,'#111');
+rect(a-20,b+13,5,13,2,'#111');
+rect(a+15,b+13,5,13,2,'#111');
+}
+function draw(){
+x.fillStyle='#39744b';x.fillRect(0,0,360,540);
+x.fillStyle='#55595e';x.fillRect(55,0,250,540);
+x.fillStyle='#f4e9bd';x.fillRect(55,0,5,540);x.fillRect(300,0,5,540);
+for(let l=1;l<3;l++){
+for(let y=-50+(frame*speed%80);y<540;y+=80){
+x.fillStyle='white';x.fillRect(55+l*250/3-2,y,4,42);
+}}
+for(let y=-30+(frame*speed%100);y<540;y+=100){
+rect(18,y,18,35,4,'#8cbd78');
+rect(324,y+35,18,35,4,'#8cbd78');
+}
+cars.forEach(o=>car(lanes[o.lane],o.y,o.color));
+car(lanes[lane],455,'#2878e8');
+}
+function update(){
+if(!running)return;
+frame++;score++;speed=3+Math.min(score/250,5);
+if(frame-last>Math.max(36,80-score/30)){
+cars.push({lane:Math.floor(Math.random()*3),y:-40,color:['#e34e43','#f0a52c','#9c70d9','#ddd'][Math.floor(Math.random()*4)]});
+last=frame;
+}
+cars.forEach(o=>o.y+=speed);
+cars=cars.filter(o=>o.y<590);
+for(const o of cars){
+if(o.lane===lane&&o.y>408&&o.y<490){end();return;}
+}
+$('score').textContent=Math.floor(score/5);
+$('speed').textContent=Math.round(speed*20);
+draw();raf=requestAnimationFrame(update);
+}
+function start(){
+cancelAnimationFrame(raf);
+running=true;frame=0;score=0;speed=3;lane=1;cars=[];last=0;
+$('score').textContent='0';$('speed').textContent='60';
+$('overlay').style.display='none';
+draw();raf=requestAnimationFrame(update);
+}
+function end(){
+running=false;cancelAnimationFrame(raf);
+let result=Math.floor(score/5);best=Math.max(best,result);
+$('best').textContent=best;
+$('overlay').innerHTML='<h2>💥 KONIEC GRY!</h2><p>Wynik: '+result+'</p><button class="primary" id="again">ZAGRAJ PONOWNIE</button>';
+$('overlay').style.display='flex';
+$('again').onclick=start;
+}
+function move(d){if(running)lane=Math.max(0,Math.min(2,lane+d));}
+$('start').onclick=start;
+$('left').onclick=()=>move(-1);
+$('right').onclick=()=>move(1);
+window.addEventListener('keydown',e=>{
+if(e.key==='ArrowLeft')move(-1);
+if(e.key==='ArrowRight')move(1);
+if(e.key==='Enter'&&!running)start();
+});
+draw();
+</script>
+</body>
+</html>
